@@ -56,15 +56,16 @@ export class WatchStack {
     constructor(options) {
         this.options = options;
 
-        console.dir(options);
-
         this.options.waitSeconds = this.options.waitSeconds || 5;
         this.options.region = this.options.region || "us-east-1";
+
 
         if(!this.options.stackName) {
             throw new Error("You must provide a valid stack name. i.e. { stackName: 'us-east-1' }");
         }
         
+        console.log(`Watching ${this.options.stackName} in ${this.options.region} every ${this.options.waitSeconds} seconds.`);
+
         this.cloudformation = new AWS.CloudFormation({apiVersion: '2010-05-15', region: options.region});
 
         this.initialize();
@@ -83,17 +84,24 @@ export class WatchStack {
             return;
         }
 
-        this.cloudformation.describeStackEvents({StackName: this.options.stackName}, (err, data) => {
-            if (err) {
-                console.log(err, err.stack);
-                process.exit(1);
-            }
-            else {
-                self.scanEvents(data as any);
+        try {
+            this.cloudformation.describeStackEvents({StackName: this.options.stackName}, (err, data) => {
+                if (err) {
+                    console.log(err, err.stack);
+                    process.exit(1);
+                }
+                else {
+                    self.scanEvents(data as any);
+    
+                    setTimeout(this.poll.bind(this), this.options.waitSeconds * 1000);
+                }
+            });
+        } catch(error) {
+            console.error("Error while connecting to cloudFormation.");
+            console.error(error);
 
-                setTimeout(this.poll.bind(this), this.options.waitSeconds * 1000);
-            }
-        });
+            process.exit(1);
+        }
     }
 
     initialize() {
