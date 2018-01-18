@@ -9,8 +9,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "patch": "generate-release --release-type patch && npm publish",
-    "release": "generate-release --release-type minor && npm publish"
+    "patch": "generate-release --release-type patch --no-confirm && npm publish",
+    "release": "generate-release --release-type minor --no-confirm && npm publish"
   },
   "repository": {
     "type": "git",
