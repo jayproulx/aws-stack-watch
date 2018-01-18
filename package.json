@@ -3,12 +3,14 @@
   "bin": {
     "aws-stack-watch": "./index.js"
   },
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A command line tool to monitor an AWS CloudFormation stack during updates, breakpoints as soon as a rollback starts",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+    "build": "tsc",
+    "patch": "generate-release --release-type patch --no-confirm && npm publish",
+    "release": "generate-release --release-type minor --no-confirm && npm publish"
   },
   "repository": {
     "type": "git",
