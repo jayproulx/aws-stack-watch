@@ -8,7 +8,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+    "build": "tsc",
+    "patch": "generate-release --release-type patch && npm publish",
+    "release": "generate-release --release-type minor && npm publish"
   },
   "repository": {
     "type": "git",
