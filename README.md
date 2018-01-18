@@ -1,7 +1,7 @@
 AWS Stack Watch
 ===============
 
-A command line tool to monitor an AWS CloudFormation stack during updates, breakpoints as soon as a rollback starts
+A command line tool to monitor an AWS CloudFormation stack during updates, breakpoints as soon as a rollback starts.
 
 Install
 -------
@@ -20,3 +20,11 @@ Usage
     -s, --stackName    CloudFormation Stack Name                        [required]
     -w, --waitSeconds  Number of seconds to wait between polls        [default: 5]
     -r, --region       AWS Region that contains the stack   [default: "us-east-1"]
+
+Hot keys
+--------
+
+* p: pause / resume
+* q/ctrl-c: quit
+* return: inspect the selected event
+* esc: close the details window
