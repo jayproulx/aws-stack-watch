@@ -1,0 +1,40 @@
+{
+  "name": "aws-stack-watch",
+  "bin": {
+    "aws-stack-watch": "./index.js"
+  },
+  "version": "0.0.1",
+  "description": "A command line tool to monitor an AWS CloudFormation stack during updates, breakpoints as soon as a rollback starts",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jayproulx/aws-stack-watch.git"
+  },
+  "keywords": [
+    "AWS",
+    "CloudFormation",
+    "CLI",
+    "monitor"
+  ],
+  "author": "Jay Proulx <jay@proulx.info>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jayproulx/aws-stack-watch/issues"
+  },
+  "homepage": "https://github.com/jayproulx/aws-stack-watch#readme",
+  "devDependencies": {
+    "@types/node": "^9.3.0",
+    "typescript": "^2.6.2"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.184.0",
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.8.5",
+    "colors": "^1.1.2",
+    "yargs": "^10.1.1"
+  }
+}
