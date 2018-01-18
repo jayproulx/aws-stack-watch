@@ -3,27 +3,6 @@
 import * as AWS from "aws-sdk";
 import {StackEvent} from "aws-sdk/clients/cloudformation";
 
-const yargs = require('yargs')
-        .usage('Watch a CloudFormation stack update. Press q to quit.\nUsage: $0')
-        .alias('H', 'help')
-        .describe('help', 'Print usage and quit.')
-        .alias('s', 'stackName')
-        .describe('stackName', 'CloudFormation Stack Name')
-        .required('stackName', true)
-        .alias('w', 'waitSeconds')
-        .describe('waitSeconds', 'Number of seconds to wait between polls')
-        .default('waitSeconds', 5)
-        .alias('r', 'region')
-        .describe('region', 'AWS Region that contains the stack')
-        .default('region', 'us-east-1')
-    ,
-    argv = yargs.argv;
-
-if (argv.H) {
-    yargs.showHelp();
-    process.exit(0);
-}
-
 let util = require('util');
 let blessed = require('blessed');
 let contrib = require('blessed-contrib');
@@ -62,6 +41,7 @@ let statuses:any = {
 
 
 export class WatchStack {
+    private options: any;
     private events: any[];
     private tabularEvents: any[];
     private table: any;
@@ -73,8 +53,19 @@ export class WatchStack {
     // this is the same as a describeStackEvents response, but without any events that have already been processed
     private queue: any;
 
-    constructor() {
-        this.cloudformation = new AWS.CloudFormation({apiVersion: '2010-05-15', region: argv.region});
+    constructor(options) {
+        this.options = options;
+
+        console.dir(options);
+
+        this.options.waitSeconds = this.options.waitSeconds || 5;
+        this.options.region = this.options.region || "us-east-1";
+
+        if(!this.options.stackName) {
+            throw new Error("You must provide a valid stack name. i.e. { stackName: 'us-east-1' }");
+        }
+        
+        this.cloudformation = new AWS.CloudFormation({apiVersion: '2010-05-15', region: options.region});
 
         this.initialize();
 
@@ -92,7 +83,7 @@ export class WatchStack {
             return;
         }
 
-        this.cloudformation.describeStackEvents({StackName: argv.stackName}, (err, data) => {
+        this.cloudformation.describeStackEvents({StackName: this.options.stackName}, (err, data) => {
             if (err) {
                 console.log(err, err.stack);
                 process.exit(1);
@@ -100,7 +91,7 @@ export class WatchStack {
             else {
                 self.scanEvents(data as any);
 
-                setTimeout(this.poll.bind(this), argv.wait * 1000);
+                setTimeout(this.poll.bind(this), this.options.waitSeconds * 1000);
             }
         });
     }
