@@ -37,6 +37,7 @@
     "blessed": "^0.1.81",
     "blessed-contrib": "^4.8.5",
     "colors": "^1.1.2",
+    "winston": "^3.0.0-rc1",
     "yargs": "^10.1.1"
   }
 }
