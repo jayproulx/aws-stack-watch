@@ -1,12 +1,19 @@
 #!/usr/bin/env ts-node
 
 import * as AWS from "aws-sdk";
-import {StackEvent} from "aws-sdk/clients/cloudformation";
+const winston = require('winston');
+const util = require('util');
+const blessed = require('blessed');
+const contrib = require('blessed-contrib');
+const colors = require('colors');
 
-let util = require('util');
-let blessed = require('blessed');
-let contrib = require('blessed-contrib');
-let colors = require('colors');
+const logger = winston.createLogger({
+    level: 'info',
+    transports: [
+        new winston.transports.File({ filename: 'error.log', level: 'error' }),
+        new winston.transports.File({ filename: 'combined.log' })
+    ]
+});
 
 let columns = [
     // 'PhysicalResourceId',
@@ -49,6 +56,9 @@ export class WatchStack {
     private screen: any;
     private cloudformation: AWS.CloudFormation;
     private pause: boolean;
+    private scanIndex = 0;
+    private latestEventTime = 0;
+    private nextTimeout;
 
     // this is the same as a describeStackEvents response, but without any events that have already been processed
     private queue: any;
@@ -59,18 +69,15 @@ export class WatchStack {
         this.options.waitSeconds = this.options.waitSeconds || 5;
         this.options.region = this.options.region || "us-east-1";
 
-
         if(!this.options.stackName) {
             throw new Error("You must provide a valid stack name. i.e. { stackName: 'us-east-1' }");
         }
         
-        console.log(`Watching ${this.options.stackName} in ${this.options.region} every ${this.options.waitSeconds} seconds.`);
+        logger.info(`Watching ${this.options.stackName} in ${this.options.region} every ${this.options.waitSeconds} seconds.`);
 
         this.cloudformation = new AWS.CloudFormation({apiVersion: '2010-05-15', region: options.region});
 
         this.initialize();
-
-        // this.startPolling();
     }
 
     startPolling() {
@@ -84,24 +91,41 @@ export class WatchStack {
             return;
         }
 
+        this.setLabel(`Polling`);
+        logger.debug("Polling");
+
         try {
             this.cloudformation.describeStackEvents({StackName: this.options.stackName}, (err, data) => {
+                this.setLabel("");
+
                 if (err) {
-                    console.log(err, err.stack);
+                    logger.error(err, err.stack);
                     process.exit(1);
                 }
                 else {
                     self.scanEvents(data as any);
     
-                    setTimeout(this.poll.bind(this), this.options.waitSeconds * 1000);
+                    this.nextTimeout = setTimeout(this.poll.bind(this), this.options.waitSeconds * 1000);
                 }
             });
         } catch(error) {
             console.error("Error while connecting to cloudFormation.");
             console.error(error);
+            logger.error(error);
 
             process.exit(1);
         }
+    }
+
+    setLabel(label:string) {
+        if(!this.table) return;
+
+        if(label && label.length) {
+            label = ` (${label})`;
+        }
+
+        this.table.setLabel(`${this.options.stackName} ${label}`);
+        this.screen.render();
     }
 
     initialize() {
@@ -118,7 +142,7 @@ export class WatchStack {
                 selectedFg: 'white',
                 selectedBg: 'grey',
                 interactive: true,
-                label: 'Resources',
+                label: this.options.stackName,
                 width: '100%',
                 height: '100%',
                 border: {
@@ -182,8 +206,6 @@ export class WatchStack {
                 depth: null
             });
 
-            // console.log(formatted);
-
             // Create a box perfectly centered horizontally and vertically.
             self.modal = blessed.box({
                 top: 'center',
@@ -230,13 +252,23 @@ export class WatchStack {
         });
 
         this.screen.render();
+
+        this.scanIndex++;
     }
 
     updateEvents(events: any) {
         this.queue = events;
 
+        logger.debug(`Updating events, latest event time is ${this.latestEventTime}`);
+
         while(this.queue.StackEvents.length) {
             let event = this.queue.StackEvents.shift();
+
+            // discard events older than the newest processed event
+            if(new Date(event.Timestamp).getTime() < this.latestEventTime) {
+                logger.debug(`Ignoring event because timestamp is ${new Date(event.Timestamp).getTime()}`);
+                // continue;
+            }
 
             this.addOrUpdateEvent(event);
 
@@ -245,7 +277,7 @@ export class WatchStack {
                 return;
             }
 
-            if(event.ResourceType == "AWS::CloudFormation::Stack" && event.ResourceStatus == "UPDATE_ROLLBACK_IN_PROGRESS") {
+            if(this.scanIndex > 0 && event.ResourceType == "AWS::CloudFormation::Stack" && event.ResourceStatus == "UPDATE_ROLLBACK_IN_PROGRESS") {
                 this.pauseScanning();
                 return;
             }
@@ -253,7 +285,9 @@ export class WatchStack {
     }
 
     pauseScanning() {
+        this.setLabel("Paused");
         this.pause = true;
+        clearTimeout(this.nextTimeout);
     }
 
     resumeScanning() {
@@ -266,6 +300,7 @@ export class WatchStack {
 
     addOrUpdateEvent(resource: any) {
         let updated = false;
+        let added = false;
 
         let id = 'LogicalResourceId';
 
@@ -280,6 +315,16 @@ export class WatchStack {
 
         if (!updated) {
             this.events.push(resource);
+
+            added = true;
+        }
+
+        if(updated || added) {
+            let ts = new Date(resource.Timestamp).getTime();
+
+            if(ts > this.latestEventTime) {
+                this.latestEventTime = ts;
+            }
         }
     }
 

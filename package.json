@@ -3,7 +3,7 @@
   "bin": {
     "aws-stack-watch": "./index.js"
   },
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "A command line tool to monitor an AWS CloudFormation stack during updates, breakpoints as soon as a rollback starts",
   "main": "index.js",
   "scripts": {
@@ -37,6 +37,7 @@
     "blessed": "^0.1.81",
     "blessed-contrib": "^4.8.5",
     "colors": "^1.1.2",
+    "winston": "^3.0.0-rc1",
     "yargs": "^10.1.1"
   }
 }
